@@ -16,29 +16,41 @@ layout(std140) uniform LightBlock {
   Light lights[MAX_LIGHTS];
 };
 
+struct Material {
+  vec3 ambient;
+  vec3 diffuse;
+  vec3 specular;
+  float shininess;
+};
+
+uniform Material material;
+
 in vec3 ndc;
 in vec3 fragNormal;
-
-vec3 norm = normalize(fragNormal);
 
 void main() {
   vec3 result = vec3(0.0);
 
   for (int i = 0; i < numlights; i++) {
+
+    //ambient
+    vec3 ambient = lights[i].color.xyz * material.ambient;
+
+    //diffuse
     vec3 lightDir = normalize(lights[i].position.xyz - ndc);
+    vec3 norm = normalize(fragNormal);
+    float diff = max(dot(lightDir, norm), 0.1);
+    vec3 diffuse = lights[i].color.xyz * (diff * material.diffuse);
+
+    //specular
     vec3 viewDir = normalize(viewPos - ndc);
     vec3 reflectLight = reflect(-lightDir, fragNormal);
+    float spec = pow(max(dot(viewDir, reflectLight), 0.0), max(material.shininess, 0.1));
 
-    float spec = pow(max(dot(viewDir, reflectLight), 0.0), max(specularStrength, 0.1));
+    vec3 specular = lights[i].color.xyz * (spec * material.specular);
 
-    vec3 diffuse = max(dot(lightDir, fragNormal), 0.1) * lights[i].color.xyz;
-
-    vec3 specular = lights[i].color.xyz * spec;
-
-    result += (diffuse + specular);
+    result += (diffuse + specular + ambient);
   }
-
-  result = ambientColor * result;
 
   gl_FragColor = vec4(result, 1.0);
 }

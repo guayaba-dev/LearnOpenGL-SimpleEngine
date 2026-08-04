@@ -34,4 +34,5 @@ function (add_chapter TARGET_NAME SOURCE_FILE)
 endfunction()
 
 
-add_chapter(basicLighting basicLighting.cpp)
+add_chapter(basicLighting basicLight/basicLighting.cpp)
+add_chapter(materials materials/material.cpp)
