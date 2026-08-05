@@ -16,6 +16,18 @@ layout(std140) uniform LightBlock {
   Light lights[MAX_LIGHTS];
 };
 
+struct n_Light { // DATA SENDED TO THE GPU
+  vec4 position;
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+};
+layout(std140) uniform n_LightBlock {
+  int n_numlights;
+  //Padding for int
+  n_Light n_lights[MAX_LIGHTS];
+};
+
 struct Material {
   vec3 ambient;
   vec3 diffuse;
@@ -31,23 +43,23 @@ in vec3 fragNormal;
 void main() {
   vec3 result = vec3(0.0);
 
-  for (int i = 0; i < numlights; i++) {
+  for (int i = 0; i < n_numlights; i++) {
 
     //ambient
-    vec3 ambient = lights[i].color.xyz * material.ambient;
+    vec3 ambient = n_lights[i].ambient.xyz * material.ambient;
 
     //diffuse
-    vec3 lightDir = normalize(lights[i].position.xyz - ndc);
+    vec3 lightDir = normalize(n_lights[i].position.xyz - ndc);
     vec3 norm = normalize(fragNormal);
     float diff = max(dot(lightDir, norm), 0.1);
-    vec3 diffuse = lights[i].color.xyz * (diff * material.diffuse);
+    vec3 diffuse = n_lights[i].diffuse.xyz * (diff * material.diffuse);
 
     //specular
     vec3 viewDir = normalize(viewPos - ndc);
     vec3 reflectLight = reflect(-lightDir, fragNormal);
     float spec = pow(max(dot(viewDir, reflectLight), 0.0), max(material.shininess, 0.1));
 
-    vec3 specular = lights[i].color.xyz * (spec * material.specular);
+    vec3 specular = n_lights[i].specular.xyz * (spec * material.specular);
 
     result += (diffuse + specular + ambient);
   }

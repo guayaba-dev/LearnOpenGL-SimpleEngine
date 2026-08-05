@@ -2,6 +2,7 @@
 #include "core/engine.h"
 #include "core/materialHandellers.h"
 #include "core/pch.hpp"
+#include "fwd.hpp"
 #include "gtc/type_ptr.hpp"
 #include <iostream>
 #include <memory>
@@ -100,6 +101,7 @@ int main(int argc, char *argv[]) {
       n_PhongEntity, n_PhongMaterial{.ambient = glm::vec3(1.0f, 0.5f, 0.31f),
                                      .diffuse = glm::vec3(1.0f, 0.5f, 0.31f),
                                      .specular = glm::vec3(0.5f, 0.5f, 0.5f)});
+
   auto lightEntity = registry.create();
   registry.emplace<Shader>(lightEntity,
                            engine.shaderMag.getShader("basicShader"));
@@ -107,7 +109,8 @@ int main(int argc, char *argv[]) {
       lightEntity, TransformComponent{.position = glm::vec3(4.0, 2.0, 0.0)});
   registry.emplace<MeshComponent>(lightEntity, cubeMesh);
   registry.emplace<UnlitMaterial>(lightEntity);
-  registry.emplace<LightComponent>(lightEntity);
+  registry.emplace<n_LightComponent>(lightEntity, glm::vec4(0.2),
+                                     glm::vec4(0.5), glm::vec4(1.0));
 
   engine.start();
   engine.run();
