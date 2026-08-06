@@ -1,11 +1,14 @@
+#include "common.hpp"
+#include "core/SystemManager.h"
 #include "core/components.h"
 #include "core/engine.h"
 #include "core/materialHandellers.h"
 #include "core/pch.hpp"
+#include "core/system.h"
 #include "fwd.hpp"
 #include "gtc/type_ptr.hpp"
-#include <iostream>
 #include <memory>
+
 float cubeVertex[] = {
     -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f,
     0.0f,  0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
@@ -47,6 +50,48 @@ struct n_PhongMaterial {
   float shininess = 32.0;
 };
 
+class n_LightSystem : public System::ISystem {
+
+public:
+  void on_update(entt::registry &world, float dt) override {
+
+    auto lightView = world.view<n_LightComponent>();
+
+    for (auto [entity, light] : lightView.each()) {
+
+      glm::vec4 lightColor;
+      lightColor.x = glm::abs(sin(glfwGetTime() * 2.0f));
+      lightColor.y = glm::abs(sin(glfwGetTime() * 0.7f));
+      lightColor.z = glm::abs(sin(glfwGetTime() * 1.3f));
+
+      light.diffuse = lightColor * glm::vec4(0.5f);
+      light.ambient = light.diffuse * glm::vec4(0.2f);
+    }
+  };
+};
+
+class n_LightBinder : public IBinder {
+
+  bool checkBind(entt::entity entity, entt::registry &world) override {
+    return defaultCheckBind<n_LightComponent>(entity, world);
+  }
+
+  void bind(entt::entity entity, entt::registry &world,
+            unsigned int shaderID) override {
+
+    auto &n_PhongMat = world.get<n_LightComponent>(entity);
+
+    glUniform4fv(glGetUniformLocation(shaderID, "material.ambient"), 1,
+                 glm::value_ptr(n_PhongMat.ambient));
+
+    glUniform4fv(glGetUniformLocation(shaderID, "material.diffuse"), 1,
+                 glm::value_ptr(n_PhongMat.diffuse));
+
+    glUniform4fv(glGetUniformLocation(shaderID, "material.specular"), 1,
+                 glm::value_ptr(n_PhongMat.specular));
+  };
+};
+
 class n_PhongBinder : public IBinder {
 
   bool checkBind(entt::entity entity, entt::registry &world) override {
@@ -81,13 +126,18 @@ int main(int argc, char *argv[]) {
   cubeMesh.vertexCount = vertexCount;
 
   engine.shaderMag.loadShader("basicShader", "assets/basic.vert",
-                              "assets/basic.frag");
+                              "assets/materialChap/n_light.frag");
 
   engine.shaderMag.loadShader("n_PhongShader",
                               "assets/materialChap/n_phongLight.vert",
                               "assets/materialChap/n_phongLight.frag");
   // binders
   engine.materialManager->addMaterialBinder(std::make_unique<n_PhongBinder>());
+  engine.materialManager->addMaterialBinder(std::make_unique<n_LightBinder>());
+
+  // systems
+  engine.systemManager.add_system(STAGE::UPDATE,
+                                  std::make_unique<n_LightSystem>());
 
   // entity definition
   auto &registry = engine.getWorld();
